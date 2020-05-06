@@ -1,6 +1,10 @@
 <div class="dplayer-mask"></div>
 <div class="dplayer-video-wrap">
+    {{ if options.video.type=="JSMpeg" }}
+    {{ include './canvas.art' video }}
+    {{else}}
     {{ include './video.art' video }}
+    {{/if}}
     {{ if options.logo }}
     <div class="dplayer-logo">
         <img src="{{ options.logo }}">

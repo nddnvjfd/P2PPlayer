@@ -21,9 +21,9 @@ import ContextMenu from './contextmenu';
 import InfoPanel from './info-panel';
 import tplVideo from '../template/video.art';
 import PlayState from './play-state';
-import Hls from 'cdnbye';
+// import Hls from 'cdnbye';
 // import Hls from 'hls.js';
-
+import flvjs from 'flv.js'
 let index = 0;
 const instances = [];
 
@@ -341,7 +341,8 @@ class DPlayer {
         this.type = type;
         if (this.options.video.customType && this.options.video.customType[type]) {
             if (Object.prototype.toString.call(this.options.video.customType[type]) === '[object Function]') {
-                this.options.video.customType[type](this.video, this);
+                // this.options.video.customType[type](this.video, this);
+                this.video=this.options.video.customType[type](this.video, this);
             } else {
                 console.error(`Illegal customType: ${type}`);
             }
@@ -382,20 +383,21 @@ class DPlayer {
                 case 'flv':
                     if (window.flvjs) {
                         if (window.flvjs.isSupported()) {
-                            const options = Object.assign(this.options.pluginOptions.flvjs, {
-                                type: 'flv',
-                                url: video.src,
-                            });
-                            const flvPlayer = window.flvjs.createPlayer(options);
-                            this.plugins.flvjs = flvPlayer;
-                            flvPlayer.attachMediaElement(video);
-                            flvPlayer.load();
-                            this.events.on('destroy', () => {
-                                flvPlayer.unload();
-                                flvPlayer.detachMediaElement();
-                                flvPlayer.destroy();
-                                delete this.plugins.flvjs;
-                            });
+                            this.initFlv(video)
+                            // const options = Object.assign(this.options.pluginOptions.flvjs, {
+                            //     type: 'flv',
+                            //     url: video.src,
+                            // });
+                            // const flvPlayer = window.flvjs.createPlayer(options);
+                            // this.plugins.flvjs = flvPlayer;
+                            // flvPlayer.attachMediaElement(video);
+                            // flvPlayer.load();
+                            // this.events.on('destroy', () => {
+                            //     flvPlayer.unload();
+                            //     flvPlayer.detachMediaElement();
+                            //     flvPlayer.destroy();
+                            //     delete this.plugins.flvjs;
+                            // });
                         } else {
                             this.notice('Error: flvjs is not supported.');
                         }
@@ -520,11 +522,16 @@ class DPlayer {
             }
         });
 
-        for (let i = 0; i < this.events.videoEvents.length; i++) {
-            video.addEventListener(this.events.videoEvents[i], () => {
-                this.events.trigger(this.events.videoEvents[i]);
-            });
+        try{
+            for (let i = 0; i < this.events.videoEvents.length; i++) {
+                video.addEventListener(this.events.videoEvents[i], () => {
+                    this.events.trigger(this.events.videoEvents[i]);
+                });
+            }
+        }catch (e) {
+            console.warn("event add error",e);
         }
+
 
         this.volume(this.user.get('volume'), true, true);
 
@@ -549,6 +556,7 @@ class DPlayer {
 
         const paused = this.video.paused;
         this.video.pause();
+
         const videoHTML = tplVideo({
             current: false,
             pic: null,
@@ -565,7 +573,6 @@ class DPlayer {
         this.seek(this.prevVideo.currentTime);
         this.notice(`${this.tran('Switching to')} ${this.quality.name} ${this.tran('quality')}`, -1);
         this.events.trigger('quality_start', this.quality);
-
         this.on('canplay', () => {
             if (this.prevVideo) {
                 if (this.video.currentTime !== this.prevVideo.currentTime) {
@@ -633,30 +640,46 @@ class DPlayer {
         return DPLAYER_VERSION;
     }
 
-    initHls(video) {
-        if (Hls.isSupported()) {
+    // initHls(video) {
+    //     if (Hls.isSupported()) {
+    //         const options = this.options.pluginOptions.hls;
+    //         // options.debug = false;
+    //         options.enableWorker = false;
+    //         const hls = new Hls(options);
+    //         this.plugins.hls = hls;
+    //         hls.loadSource(video.src);
+    //         hls.attachMedia(video);
+    //         this.setupP2PListeners(hls);
+    //         this.events.on('destroy', () => {
+    //             hls.destroy();
+    //             delete this.plugins.hls;
+    //         });
+    //     } else {
+    //         this.notice('Error: Hls is not supported.');
+    //     }
+    // }
+    initFlv(video) {
+        if (flvjs.isSupported()) {
             const options = this.options.pluginOptions.hls;
             // options.debug = false;
             options.enableWorker = false;
-            const hls = new Hls(options);
-            this.plugins.hls = hls;
-            hls.loadSource(video.src);
-            hls.attachMedia(video);
-            this.setupP2PListeners(hls);
+            const flvjs = new flvjs(options);
+            this.plugins.flvjs = flvjs;
+            flvjs.loadSource(video.src);
+            flvjs.attachMedia(video);
+            this.setupP2PListeners(flvjs);
             this.events.on('destroy', () => {
-                hls.destroy();
-                delete this.plugins.hls;
+                flvjs.destroy();
+                delete this.plugins.flvjs;
             });
         } else {
             this.notice('Error: Hls is not supported.');
         }
     }
-
-    // P2P
-    setupP2PListeners(hlsjs) {
-        if (hlsjs.p2pEngine) {
-            this.p2pInfo.version = hlsjs.p2pEngine.version;
-            hlsjs.p2pEngine
+    setupP2PListeners(flvjs) {
+        if (flvjs.p2pEngine) {
+            this.p2pInfo.version = flvjs.p2pEngine.version;
+            flvjs.p2pEngine
                 .on('stats', (stats) => {
                     this.p2pInfo.downloaded = stats.totalP2PDownloaded;
                     this.p2pInfo.uploaded = stats.totalP2PUploaded;
@@ -672,6 +695,27 @@ class DPlayer {
                 });
         }
     }
+
+    // P2P
+    // setupP2PListeners(hlsjs) {
+    //     if (hlsjs.p2pEngine) {
+    //         this.p2pInfo.version = hlsjs.p2pEngine.version;
+    //         hlsjs.p2pEngine
+    //             .on('stats', (stats) => {
+    //                 this.p2pInfo.downloaded = stats.totalP2PDownloaded;
+    //                 this.p2pInfo.uploaded = stats.totalP2PUploaded;
+    //                 this.events.trigger('stats', stats);
+    //             })
+    //             .on('peerId', (peerId) => {
+    //                 this.p2pInfo.peerId = peerId;
+    //                 this.events.trigger('peerId', peerId);
+    //             })
+    //             .on('peers', (peers) => {
+    //                 this.p2pInfo.peers = peers.length;
+    //                 this.events.trigger('peers', peers);
+    //             });
+    //     }
+    // }
 }
 
 // function requestScript(url, callback) {

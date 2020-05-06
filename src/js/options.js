@@ -53,14 +53,14 @@ export default (options) => {
                 player.infoPanel.triggle();
             },
         },
-        // {
-        //     text: 'About author',
-        //     link: 'https://diygod.me',
-        // },
-        // {
-        //     text: `CBPlayer v${DPLAYER_VERSION}`,
-        //     link: 'https://github.com/cdnbye/CBPlayer',
-        // },
+        {
+            text: 'About author',
+            link: 'https://diygod.me',
+        },
+        {
+            text: `CBPlayer v${DPLAYER_VERSION}`,
+            link: 'https://github.com/cdnbye/CBPlayer',
+        },
     ]);
 
     return options;

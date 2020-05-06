@@ -23,6 +23,7 @@ class Template {
                 preload: this.options.preload,
                 url: this.options.video.url,
                 subtitle: this.options.subtitle,
+                type:this.options.video.type,
             },
         });
 
