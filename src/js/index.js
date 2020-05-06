@@ -1,6 +1,7 @@
 import '../css/index.scss';
 import DPlayer from './player';
 
+//test git
 console.info("直播使用jsmpeg，点播使用flv.js");
 
 /* global DPLAYER_VERSION GIT_HASH */
